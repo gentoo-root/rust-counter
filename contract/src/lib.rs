@@ -10,6 +10,7 @@
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, near_bindgen};
+use std::string::String;
 
 near_sdk::setup_alloc!();
 
@@ -48,13 +49,25 @@ impl Counter {
     /// ```bash
     /// near call counter.YOU.testnet increment --accountId donation.YOU.testnet
     /// ```
-    pub fn increment(&mut self) {
+    pub fn increment(&mut self, op: String, delta: i8) {
         // note: adding one like this is an easy way to accidentally overflow
         // real smart contracts will want to have safety checks
         // e.g. self.val = i8::wrapping_add(self.val, 1);
         // https://doc.rust-lang.org/std/primitive.i8.html#method.wrapping_add
-        self.val += 1;
-        let log_message = format!("Increased number to {}", self.val);
+        let log_message;
+        match op.as_str() {
+            "add" => {
+                self.val += delta;
+                log_message = format!("Increased number to {}", self.val);
+            }
+            "sub" => {
+                self.val -= delta;
+                log_message = format!("Decreased number to {}", self.val);
+            }
+            _ => {
+                log_message = format!("Invalid operation {}", op);
+            }
+        }
         env::log(log_message.as_bytes());
         after_counter_change();
     }
@@ -132,7 +145,7 @@ mod tests {
         testing_env!(context.build());
         // instantiate a contract variable with the counter at zero
         let mut contract = Counter { val: 0 };
-        contract.increment();
+        contract.increment("add", 1);
         println!("Value after increment: {}", contract.get_num());
         // confirm that we received 1 when calling get_num
         assert_eq!(1, contract.get_num());
